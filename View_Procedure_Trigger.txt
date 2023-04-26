@@ -1,0 +1,180 @@
+VIEW 1 - 
+
+Essa VIEW contém COD_EMPRESA, COD_MAT, COD_TIP_MAT e PRECO_UNIT, mostrando codigo da empresa, material, tipo do material e seu preço.
+
+CREATE VIEW PRECO_MAT_FORNEC AS
+SELECT MF.COD_EMPRESA, MF.COD_MAT, M.COD_TIP_MAT, MF.ID_FOR, M.PRECO_UNIT
+FROM MAT_FORNEC MF
+JOIN MATERIAL M ON MF.COD_EMPRESA = M.COD_EMPRESA AND MF.COD_MAT = M.COD_MAT;
+
+chamar view --->
+
+SELECT * FROM PRECO_MAT_FORNEC;
+
+SELECT * FROM PRECO_MAT_FORNEC
+WHERE COD_EMPRESA = 1
+ORDER BY COD_MAT;
+
+
+
+VIEW 2 -
+
+Essa VIEW retorna informações dos pedidos de vendas, incluindo o código da empresa, número do pedido, identificação do cliente, data do pedido, data de entrega, total do pedido, sequência do item do pedido, código do material, quantidade, valor unitário e descrição do material.
+
+CREATE VIEW VIEW_PEDIDOS_VENDAS AS
+SELECT PV.COD_EMPRESA, PV.NUM_PEDIDO, PV.ID_CLIENTE, PV.DATA_PEDIDO, PV.DATA_ENTREGA, PV.TOTAL_PED, PVIT.SEQ_MAT, PVIT.COD_MAT, PVIT.QTD, PVIT.VAL_UNIT, M.DESCRICAO
+FROM PED_VENDAS PV
+INNER JOIN PED_VENDAS_ITENS PVIT ON PV.COD_EMPRESA = PVIT.COD_EMPRESA AND PV.NUM_PEDIDO = PVIT.NUM_PEDIDO
+INNER JOIN MATERIAL M ON PVIT.COD_EMPRESA = M.COD_EMPRESA AND PVIT.COD_MAT = M.COD_MAT;
+
+chamar view --->
+SELECT * FROM VIEW_PEDIDOS_VENDAS;
+
+SELECT * FROM VIEW_PEDIDOS_VENDAS
+WHERE COD_EMPRESA = 1
+ORDER BY NUM_PEDIDO;
+
+
+
+TRIGGER 1 -
+
+O trigger é disparado após a inserção de um novo registro na tabela PED_VENDAS_ITENS (AFTER INSERT ON PED_VENDAS_ITENS).
+A variável "valor_total_pedido" é declarada para armazenar o valor total do pedido de venda.
+A variável "id_vendedor" é declarada para armazenar o id do vendedor responsável pelo pedido de venda.
+A primeira consulta obtém o valor total do pedido de venda utilizando a cláusula "SELECT ... INTO".
+A segunda consulta obtém o id do vendedor responsável pelo pedido de venda.
+A terceira consulta atualiza a tabela META_VENDAS com o valor do novo pedido de venda, somando-o ao valor atual.
+As condições utilizadas nos WHEREs garantem que as informações atualizadas sejam referentes ao mesmo registro.
+
+
+DELIMITER $
+CREATE TRIGGER atualiza_meta_vendas
+AFTER INSERT ON PED_VENDAS_ITENS
+FOR EACH ROW
+BEGIN
+  DECLARE valor_total_pedido DECIMAL(10,2);
+  DECLARE id_vendedor INT;
+  
+  -- Obtém o valor total do pedido de venda
+  SELECT SUM(QTD * VAL_UNIT) INTO valor_total_pedido
+  FROM PED_VENDAS_ITENS
+  WHERE COD_EMPRESA = NEW.COD_EMPRESA AND NUM_PEDIDO = NEW.NUM_PEDIDO;
+  
+  -- Obtém o id do vendedor responsável pelo pedido de venda
+  SELECT ID_VEND INTO id_vendedor
+  FROM VENDEDORES
+  WHERE COD_EMPRESA = NEW.COD_EMPRESA AND MATRICULA = (SELECT MATRICULA FROM PEDIDOS_VENDAS WHERE COD_EMPRESA = NEW.COD_EMPRESA AND NUM_PEDIDO = NEW.NUM_PEDIDO);
+  
+  -- Atualiza a tabela META_VENDAS com o valor do novo pedido de venda
+  UPDATE META_VENDAS
+  SET VALOR = VALOR + valor_total_pedido
+  WHERE COD_EMPRESA = NEW.COD_EMPRESA AND ID_VEND = id_vendedor AND ANO = YEAR(NOW()) AND MES = MONTH(NOW());
+END$
+DELIMITER ;
+
+usar trigger ---> INSERT INTO PED_VENDAS_ITENS (COD_EMPRESA, NUM_PEDIDO, COD_MAT, QTD, VAL_UNIT) VALUES (1, 123, 'ABC', 10, 100);
+
+
+TRIGGER 2 -
+
+Trigger chamada upd_preco_material que é acionada após a atualização de uma linha na tabela MATERIAL. A Trigger verifica se o preço unitário do material foi alterado, e, se sim, insere uma nova linha na tabela HIST_PRECO_MATERIAL com as informações da alteração.
+
+CREATE TABLE HIST_PRECO_MATERIAL (
+  ID INT NOT NULL AUTO_INCREMENT,
+  COD_EMPRESA INT NOT NULL,
+  COD_MAT INT NOT NULL,
+  PRECO_ANTIGO DECIMAL(10,2) NOT NULL,
+  PRECO_NOVO DECIMAL(10,2) NOT NULL,
+  DATA_ALTERACAO DATETIME NOT NULL,
+  PRIMARY KEY (ID)
+);
+
+
+DELIMITER $
+CREATE TRIGGER upd_preco_material AFTER UPDATE ON MATERIAL
+FOR EACH ROW
+BEGIN
+    IF NEW.PRECO_UNIT <> OLD.PRECO_UNIT THEN
+        INSERT INTO HIST_PRECO_MATERIAL (COD_EMPRESA, COD_MAT, PRECO_ANTIGO, PRECO_NOVO, DATA_ALTERACAO)
+        VALUES (OLD.COD_EMPRESA, OLD.COD_MAT, OLD.PRECO_UNIT, NEW.PRECO_UNIT, NOW());
+    END IF;
+END $
+DELIMITER ;
+
+
+
+Procedure IN - 
+
+Exibir COD_MAT, DESCRICAO e PRECO_UNIT maior que o valor digitado
+
+DELIMITER $
+CREATE PROCEDURE material_maior_preco(IN valor DECIMAL(10,2))
+BEGIN
+    SELECT COD_MAT, DESCRICAO, PRECO_UNIT
+    FROM MATERIAL
+    WHERE PRECO_UNIT > valor;
+END $
+DELIMITER ;
+
+chamar procedure --> CALL sp_exibir_material_preco(2000);
+Stored Procedure
+
+Procedure OUT -
+
+DELIMITER $
+CREATE PROCEDURE idade_media_funcionarios(COD_EMPRESA_IN INT, OUT idade_media FLOAT)
+BEGIN
+    SELECT AVG(TIMESTAMPDIFF(YEAR, DATA_NASC, CURDATE())) INTO idade_media
+    FROM FUNCIONARIO
+    WHERE COD_EMPRESA = COD_EMPRESA_IN AND DATE_DEMISS IS NULL;
+END$
+DELIMITER ;
+
+chamar procedure --> 
+
+CALL idade_media_funcionarios(1, @idade_media);
+SELECT @idade_media AS idade_media_funcionarios;
+
+
+
+
+
+
+
+
+
+
+Trigger reserva:
+
+A trigger é criada com o nome tr_valida_matricula.
+A trigger é disparada antes de cada inserção na tabela USUARIOS, com BEFORE INSERT ON USUARIOS.
+O BEGIN indica o início do bloco de instruções executado pela trigger.
+A condição IF NOT EXISTS verifica se não existe um registro na tabela FUNCIONARIO com a mesma COD_EMPRESA e MATRICULA que o novo registro sendo inserido (NEW.COD_EMPRESA e NEW.MATRICULA).
+Se a condição for verdadeira (ou seja, se não houver um registro correspondente na tabela FUNCIONARIO), a trigger dispara um erro com a mensagem "A matrícula informada não está cadastrada na tabela FUNCIONARIO." usando a instrução SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'mensagem'.
+O END IF indica o fim da condição IF.
+O END indica o fim do bloco de instruções executado pela trigger.
+
+
+DELIMITER $
+
+CREATE TRIGGER tr_valida_matricula
+BEFORE INSERT ON USUARIOS
+FOR EACH ROW
+BEGIN
+    IF NOT EXISTS (
+        SELECT * FROM FUNCIONARIO
+        WHERE COD_EMPRESA = NEW.COD_EMPRESA
+        AND MATRICULA = NEW.MATRICULA
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'A matrícula informada não está cadastrada na tabela FUNCIONARIO.';
+    END IF;
+END$
+
+DELIMITER ;
+
+
+
+
+
+
