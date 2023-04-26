@@ -1,0 +1,48 @@
+========== COND_PAGTO ===========
+
+INSERT INTO COND_PAGTO (NOME_CP) VALUES ('A VISTA');
+
+INSERT INTO COND_PAGTO (NOME_CP) VALUES ('3 X 30/60/90 DD'); 
+
+INSERT INTO COND_PAGTO (NOME_CP) VALUES ('30 DD');
+
+
+
+===== VENDEDORES =====
+
+INSERT INTO vendedores (COD_EMPRESA, id_vend, MATRICULA) values (1,1,1);
+INSERT INTO vendedores (COD_EMPRESA, id_vend, MATRICULA) values (1,2,2);
+
+
+
+
+ INSERT INTO META_VENDAS VALUES (1,1,'2018','01',83.33);
+ INSERT INTO META_VENDAS VALUES (1,1,'2018','02',83.33);
+ INSERT INTO META_VENDAS VALUES (1,1,'2018','03',83.33);
+ INSERT INTO META_VENDAS VALUES (1,1,'2018','04',83.33);
+ INSERT INTO META_VENDAS VALUES (1,1,'2018','05',83.33);
+
+
+
+
+INSERT INTO PED_VENDAS_ITENS VALUES (1,1,1,1,50,2500);
+
+
+
+
+
+insert into apontamentos values (1, 2, 1, 1, 10,'2018-01-01');
+insert into apontamentos values (2, 1, 1, 1, 10,'2018-01-01');
+
+
+
+insert into estoque_mov values (2, 1, 'S', 4, 'A', 28, '2023-05-04', NOW());
+insert into estoque_mov values (1, 1, 'E', 4, 'A', 36, '2023-05-04', NOW());
+
+
+insert into folha_pagto values (1, 2, 'S', 'M', 'Salario', '05', '2023', '2023-05-06', 3800);
+
+
+
+insert into nota_fiscal values (1, 1, 'E', '1.101', 1, 1, '2023-05-10', '2023-05-15', 150, 'N','N');
+insert into nota_fiscal values (1, 1, 'S', '5.101', 1, 2, '2023-05-10', '2023-05-15', 150, 'N','N');
